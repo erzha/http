@@ -91,6 +91,8 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	sapiobj := NewSapi(res, req)
 	kernelSapi := &kernel.Sapi{}
+	kernelSapi.Stdout = res
+	kernelSapi.Stderr = res
 	kernelSapi.Ext = sapiobj
 	sapiobj.Kernel = kernelSapi
 	if nil != InitHttpRequest(sapiobj) {

@@ -17,7 +17,7 @@ var (
 
 
 type ActionInterface interface {
-	Execute(ctx context.Context, sapi *kernel.Sapi)
+	Execute(ctx context.Context, sapi *Sapi)
 }
 
 type Action struct {
@@ -52,6 +52,8 @@ func Router(url string, name string, obj ActionInterface) {
 }
 
 func do(ctx context.Context, sapi *kernel.Sapi) {
+	httpsapi := sapi.Ext.(*Sapi)
+	httpsapi.actionObj.Execute(ctx, httpsapi)
 }
 
 func InitHttpRequest(httpsapi *Sapi) error  {
