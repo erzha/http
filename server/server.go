@@ -84,7 +84,7 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	defer func(){ p.currentChildren-- }()
 	p.currentChildren++
 
-	ctx, cancel := context.WithTimeout(serverCtx, 100)
+	ctx, cancel := context.WithTimeout(serverCtx, 1*time.Second)
 	defer cancel()
 
 	actionDone := make(chan bool)
