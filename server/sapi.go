@@ -9,7 +9,8 @@ import (
 
 
 type Sapi struct {
-	kernel.Sapi
+
+	Kernel *kernel.Sapi
 
 	Res http.ResponseWriter
 	Req *http.Request

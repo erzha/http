@@ -54,15 +54,12 @@ func Router(url string, name string, obj ActionInterface) {
 func do(ctx context.Context, sapi *kernel.Sapi) {
 }
 
-func InitHttpRequest(sapi *kernel.Sapi) error  {
+func InitHttpRequest(httpsapi *Sapi) error  {
 
 	//get action name from requesturi
-	var httpsapi *Sapi
 	var actionName, uri string
 	var param map[string]string
 	var ok bool
-
-	httpsapi = sapi.Ext.(*Sapi)
 
 	uri = httpsapi.RequestURI()
 	uri = strings.TrimLeft(uri, "/\\")
