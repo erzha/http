@@ -108,9 +108,9 @@ func requestInit(ctx context.Context, sapi *kernel.Sapi, obj interface{}) error 
 func newInfo() kernel.PluginInfo {
 	info := kernel.PluginInfo{}
 	info.Creater = sessionCreater
-	info.HookPluginRequestInit = requestInit
-	info.HookPluginServerInit = serverInit
-	info.HookPluginServerShutdown = serverShutdown
+	info.RequestInit = requestInit
+	info.ServerInit = serverInit
+	info.ServerShutdown = serverShutdown
 	return info
 }
 
