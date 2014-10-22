@@ -30,8 +30,12 @@ func (p *Sapi) RequestURI() string {
 	return p.Req.URL.Path
 }
 
-func (p *Sapi) Cookie(key string) string {
-	return p.Req.Cookie(key)
+func (p *Sapi) Cookie(key string)  string {
+	c, e := p.Req.Cookie(key)
+	if nil!=e {
+		return ""
+	}
+	return c.Value;
 }
 
 func (p *Sapi) SetCookie(cookie *http.Cookie) {
