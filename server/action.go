@@ -18,13 +18,18 @@ var (
 
 type ActionInterface interface {
 	Execute(ctx context.Context, sapi *Sapi)
+	Init(ctx context.Context, sapi *Sapi) error
 }
 
 type Action struct {
 }
 
-func (action *Action) Execute(ctx context.Context, sapi *kernel.Sapi) {
+func (action *Action) Execute(ctx context.Context, sapi *Sapi) {
 
+}
+
+func (action *Action) Init(ctx context.Context, sapi *Sapi) error {
+	return nil
 }
 
 
@@ -32,23 +37,23 @@ type ActionSpec struct {
 	Action
 }
 
-func (action *ActionSpec) Execute(ctx context.Context, sapi *kernel.Sapi) {
+func (action *ActionSpec) Execute(ctx context.Context, sapi *Sapi) {
 
 }
 
-func (action *ActionSpec) DoGet(ctx context.Context, sapi *kernel.Sapi) {
+func (action *ActionSpec) DoGet(ctx context.Context, sapi *Sapi) {
 
 }
 
-func (action *ActionSpec) DoPost(ctx context.Context, sapi *kernel.Sapi) {
+func (action *ActionSpec) DoPost(ctx context.Context, sapi *Sapi) {
 
 }
 
-var actionMap map[string]ActionInterface
+var actionMap map[string]func()ActionInterface
 
-func Router(url string, name string, obj ActionInterface) {
+func Router(url string, name string, creater func()ActionInterface) {
 	routerAddRule(url, name)
-	actionMap[name] = obj
+	actionMap[name] = creater
 }
 
 func do(ctx context.Context, sapi *kernel.Sapi) {
@@ -81,13 +86,16 @@ func InitHttpRequest(httpsapi *Sapi) error  {
 		actionName = uri
 	}
 
-	httpsapi.actionObj, ok = actionMap[actionName]
+	var creater func()ActionInterface
+	creater, ok = actionMap[actionName]
 	if !ok {
 		return errors.New("")
 	}
+	httpsapi.actionObj = creater()
 	return nil
 }
 
 func init() {
-	actionMap = make(map[string]ActionInterface)
+	actionMap = make(map[string]func()ActionInterface)
 }
+
