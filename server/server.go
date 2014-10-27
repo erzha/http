@@ -90,7 +90,7 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	actionDone := make(chan bool)
 
 	sapiobj := NewSapi(res, req)
-	kernelSapi := &kernel.Sapi{}
+	kernelSapi := kernel.NewSapi()
 	kernelSapi.Stdout = res
 	kernelSapi.Stderr = res
 	kernelSapi.Ext = sapiobj
