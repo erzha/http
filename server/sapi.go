@@ -48,6 +48,11 @@ func (p *Sapi) Header() http.Header {
 	return p.Res.Header()
 }
 
+func (p *Sapi) Redirect(url string, code int) {
+	p.Header().Add("Location", url)
+	p.Res.WriteHeader(code)
+}
+
 func (p *Sapi) SetCookie(cookie *http.Cookie) {
 	http.SetCookie(p.Res, cookie)
 }
@@ -64,6 +69,8 @@ func NewSapi(res http.ResponseWriter, req *http.Request) *Sapi {
 	ret.Post = url.Values{}
 	ret.File = ParamFiles{}
 
+	req.ParseForm()
+	req.ParseMultipartForm(10*1024*1024)
 	ret.Get, _ = url.ParseQuery(req.URL.RawQuery)
 	if nil != req.MultipartForm {
 		for key, val := range req.MultipartForm.Value {
