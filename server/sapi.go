@@ -1,8 +1,12 @@
 package server
 
 import (
+	"os"
+	"io"
+	"errors"
 	"net/http"
 	"net/url"
+	"mime/multipart"
 
 	"github.com/erzha/kernel"
 )
@@ -21,7 +25,8 @@ type Sapi struct {
 	Form	url.Values
 	File	ParamFiles
 
-	actionObj ActionInterface
+	handler *actionHandler
+	chExitRequest chan bool
 }
 
 func (p *Sapi) RequestURI() string {
@@ -40,7 +45,7 @@ func (p *Sapi) Cookie(key string)  string {
 }
 
 func (p *Sapi) Header() http.Header {
-	return p.Res.Header
+	return p.Res.Header()
 }
 
 func (p *Sapi) SetCookie(cookie *http.Cookie) {
@@ -53,22 +58,23 @@ func NewSapi(res http.ResponseWriter, req *http.Request) *Sapi {
 	ret.Res = res
 	ret.Req = req
 	ret.Status = 200
+	ret.chExitRequest = make(chan bool)
 
-	p.Get = url.Values{}
-	p.Post = url.Values{}
-	p.File = ParamFiles{}
+	ret.Get = url.Values{}
+	ret.Post = url.Values{}
+	ret.File = ParamFiles{}
 
 	ret.Get, _ = url.ParseQuery(req.URL.RawQuery)
 	if nil != req.MultipartForm {
 		for key, val := range req.MultipartForm.Value {
 			for _, v := range val {
-				p.Post.Add(key, v)
+				ret.Post.Add(key, v)
 			}
 		}
-		p.File = ParamFiles(sapi.Req.MultipartForm.File)
+		ret.File = ParamFiles(req.MultipartForm.File)
 
 	} else {
-		p.Post = req.PostForm
+		ret.Post = req.PostForm
 	}
 	ret.Form = req.Form
 

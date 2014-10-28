@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/erzha/kernel"
@@ -25,6 +26,9 @@ type Handler struct {
 
 	maxChildren int64
 	currentChildren int64
+
+	staticPrefix string
+	staticDir string
 }
 
 func (p *Handler) shutdown() {
@@ -51,12 +55,18 @@ func (p *Handler) Serve(ctx context.Context, pServer *kernel.Server) {
 	p.server = pServer
 
 	var err error
-
-	p.Ln, err = net.Listen("tcp", "127.0.0.1:9999")
+	
+	listenNet := pServer.Conf.String("erzha.http.net", "tcp")
+	listenAddr := pServer.Conf.String("erzha.http.laddr", ":8989")
+	p.Ln, err = net.Listen(listenNet, listenAddr)
 
 	if nil != err {
+		pServer.Logger.Fatalf("erzha_http_server_listen_error %s", err.Error())
 		return //exit
 	}
+
+	p.staticPrefix = pServer.Conf.String("erzha.http.static_prefix", "/static/")
+	p.staticDir = pServer.Conf.String("erzha.http.static_dir", "static/")
 
 	go func() {
 		server := &http.Server{}
@@ -84,6 +94,13 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	defer func(){ p.currentChildren-- }()
 	p.currentChildren++
 
+	//whether is a static resourse
+	if strings.HasPrefix(req.RequestURI, p.staticPrefix) {
+		http.ServeFile(res, req, p.staticDir + req.RequestURI)
+		return
+	}
+
+
 	ctx, cancel := context.WithTimeout(serverCtx, 1*time.Second)
 	defer cancel()
 
@@ -95,7 +112,10 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	kernelSapi.Stderr = res
 	kernelSapi.Ext = sapiobj
 	sapiobj.Kernel = kernelSapi
-	if nil != InitHttpRequest(sapiobj) {
+
+	err := InitHttpRequest(sapiobj)
+	if err != nil {
+		kernelSapi.Server.Logger.Warning(err.Error())
 		return
 	}
 
@@ -108,6 +128,7 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case <-actionDone:
 	case <-ctx.Done():
 	case <-res.(http.CloseNotifier).CloseNotify(): //client disconnected
+	case <-sapiobj.chExitRequest:
 	}
 }
 

@@ -86,7 +86,7 @@ func sessionCreater() (interface{}, error) {
 }
 
 func serverInit(ctx context.Context, s *kernel.Server) error {
-	if nil != sessionHandler {
+	if nil == sessionHandler {
 		sessionHandler = newDefaultHandler()
 	}
 	sessionHandler.SetExpireTime(1200)
