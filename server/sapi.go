@@ -1,3 +1,7 @@
+// Copyright 2014 The erzha Authors. All rights reserved.
+// Use of this source code is governed by a MIT
+// license that can be found in the LICENSE file.
+
 package server
 
 import (
@@ -48,9 +52,9 @@ func (p *Sapi) Header() http.Header {
 	return p.Res.Header()
 }
 
-func (p *Sapi) Redirect(url string, code int) {
+func (p *Sapi) Redirect(url string) {
 	p.Header().Add("Location", url)
-	p.Res.WriteHeader(code)
+	p.Res.WriteHeader(302)
 }
 
 func (p *Sapi) SetCookie(cookie *http.Cookie) {

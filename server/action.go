@@ -1,9 +1,14 @@
+// Copyright 2014 The erzha Authors. All rights reserved.
+// Use of this source code is governed by a MIT
+// license that can be found in the LICENSE file.
+
 package server
 
 import (
 	"strings"
 	"errors"
 	"reflect"
+	"net/http"
 
 	"github.com/erzha/kernel"
 
@@ -58,6 +63,15 @@ func Router(url string, name string, creater func()ActionInterface) {
 
 func do(ctx context.Context, sapi *kernel.Sapi) {
 	httpsapi := sapi.Ext.(*Sapi)
+
+	defer func() {
+		r := recover()
+		if nil!=r {
+			sapi.Server.Logger.Warning("server_internal_error ", r)
+			http.Error(httpsapi.Res, "server internal error", http.StatusInternalServerError)
+		}
+	}()
+
 	handler := httpsapi.handler
 	obj := handler.creater()
 	if false == handler.flag {

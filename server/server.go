@@ -29,6 +29,8 @@ type Handler struct {
 
 	staticPrefix string
 	staticDir string
+
+	confTimeout time.Duration
 }
 
 func (p *Handler) shutdown() {
@@ -68,6 +70,12 @@ func (p *Handler) Serve(ctx context.Context, pServer *kernel.Server) {
 	p.staticPrefix = pServer.Conf.String("erzha.http.static_prefix", "/static/")
 	p.staticDir = pServer.Conf.String("erzha.http.static_dir", "static/")
 
+	p.confTimeout, err = time.ParseDuration(pServer.Conf.String("erzha.http.timeout", "6s"))
+	if nil != err {
+		pServer.Logger.Fatal("erzha_http_server_timeout_conf_error ", err)
+		return
+	}
+
 	go func() {
 		server := &http.Server{}
 		server.Handler = p
@@ -100,8 +108,7 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-
-	ctx, cancel := context.WithTimeout(serverCtx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(serverCtx, p.confTimeout)
 	defer cancel()
 
 	actionDone := make(chan bool)
