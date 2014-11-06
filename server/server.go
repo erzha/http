@@ -103,7 +103,7 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	p.currentChildren++
 
 	//whether is a static resourse
-	if strings.HasPrefix(req.RequestURI, p.staticPrefix) {
+	if req.RequestURI == "/favicon.ico" || strings.HasPrefix(req.RequestURI, p.staticPrefix) {
 		http.ServeFile(res, req, p.staticDir + req.RequestURI)
 		return
 	}

@@ -127,7 +127,7 @@ func InitHttpRequest(httpsapi *Sapi) error  {
 
 	httpsapi.handler, ok = actionMap[actionName]
 	if !ok {
-		return errors.New("cannot find action creater named " + actionName)
+		return errors.New("cannot find action creater named " + actionName + " requesturi:" + uri)
 	}
 	return nil
 }
