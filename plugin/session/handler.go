@@ -18,6 +18,11 @@ type Handler interface {
 	Stop() bool
 
 	Set(sid, key string, value []byte) bool
+
+	/*
+	get data associate with sid. 
+	if sid is not existent, return nil, false
+	*/
 	Get(sid, key string)  ([]byte, bool)
 	Del(sid, key string) bool
 	Destory(sid string) bool

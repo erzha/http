@@ -14,6 +14,13 @@ import (
 	"golang.org/x/net/context"
 )
 
+var (
+	//the expire time of session, default is 1200s.
+	ConfSessionTimeout int = 1200
+
+	ConfSessionIdName string = "SID"
+)
+
 func uuid() string {
 	now := time.Now()
 	unixtimestamp := now.Unix()
@@ -46,11 +53,16 @@ func (s *Session) Start() {
 	}
 
 	s.hasStarted = true
-	id := s.httpsapi.Cookie("SID")
+	id := s.httpsapi.Cookie(ConfSessionIdName)
 
 	if id == "" {
 		id = uuid()
-		newcookie := http.Cookie{Name: "SID", Value: id}
+		newcookie := http.Cookie{
+			Name: ConfSessionIdName,
+			Value: id,
+			Expires: time.Now().Add(time.Duration(ConfSessionTimeout)*time.Second),
+			HttpOnly: true,
+		}
 		s.httpsapi.SetCookie(&newcookie)
 	}
 	s.id = id
@@ -89,7 +101,7 @@ func serverInit(ctx context.Context, s *kernel.Server) error {
 	if nil == sessionHandler {
 		sessionHandler = newDefaultHandler()
 	}
-	sessionHandler.SetExpireTime(1200)
+	sessionHandler.SetExpireTime(ConfSessionTimeout)
 	sessionHandler.Start()
 	return nil
 }
