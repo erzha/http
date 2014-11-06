@@ -12,7 +12,7 @@ import (
 
 	"github.com/erzha/kernel"
 
-	"code.google.com/p/go.net/context"
+	"golang.org/x/net/context"
 )
 
 

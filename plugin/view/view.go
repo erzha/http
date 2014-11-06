@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.google.com/p/go.net/context"
+	"golang.org/x/net/context"
 	
 	"github.com/erzha/kernel"
 	"github.com/erzha/http/server"

@@ -11,7 +11,7 @@ import (
 	"github.com/erzha/kernel"
 	"github.com/erzha/http/server"
 
-	"code.google.com/p/go.net/context"
+	"golang.org/x/net/context"
 )
 
 func uuid() string {
