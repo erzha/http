@@ -101,6 +101,7 @@ func serverInit(ctx context.Context, s *kernel.Server) error {
 	if nil == sessionHandler {
 		sessionHandler = newDefaultHandler()
 	}
+	ConfSessionTimeout = int(s.Conf.Int64("erzha.http.plugin.session.timeout", 1200))
 	sessionHandler.SetExpireTime(ConfSessionTimeout)
 	sessionHandler.Start()
 	return nil
