@@ -9,12 +9,12 @@ import (
 	"errors"
 	"reflect"
 	"net/http"
+	"net/url"
 
 	"github.com/erzha/kernel"
 
 	"golang.org/x/net/context"
 )
-
 
 var (
 	confDefaultAction string = "index"
@@ -25,6 +25,9 @@ type actionHandler struct {
 	flag bool
 	hasDoGet bool
 	hasDoPost bool
+
+	//websocket only
+	hasDoWebsocket bool
 	creater func()ActionInterface
 }
 
@@ -36,9 +39,14 @@ type actionDoPost interface {
 	DoPost(ctx context.Context, sapi *Sapi)
 }
 
+type actionDoWebsocket interface {
+	DoWebsocket(ctx context.Context, sapi *WebsocketSapi)
+}
+
 type ActionInterface interface {
 	Execute(ctx context.Context, sapi *Sapi)
 	Init(ctx context.Context, sapi *Sapi) error
+	InitWebsocket(ctx context.Context, sapi *WebsocketSapi) error
 }
 
 type Action struct {
@@ -49,6 +57,10 @@ func (action *Action) Execute(ctx context.Context, sapi *Sapi) {
 }
 
 func (action *Action) Init(ctx context.Context, sapi *Sapi) error {
+	return nil
+}
+
+func (action *Action) InitWebsocket(ctx context.Context, sapi *WebsocketSapi) error {
 	return nil
 }
 
@@ -96,28 +108,59 @@ func do(ctx context.Context, sapi *kernel.Sapi) {
 	}
 }
 
-func InitHttpRequest(httpsapi *Sapi) error  {
+
+func doWebsocket(ctx context.Context, sapi *kernel.Sapi) {
+	wsapi := sapi.Ext.(*WebsocketSapi)
+
+	defer func() {
+		r := recover()
+		if nil!=r {
+			sapi.Server.Logger.Warning("server_internal_error ", r)
+		}
+	}()
+
+	handler := wsapi.handler
+	obj := handler.creater()
+	if false == handler.flag {
+		handler.flag = true
+		t := reflect.TypeOf(obj)
+		_, handler.hasDoWebsocket = t.MethodByName("DoWebsocket")
+	}
+
+	if false == handler.hasDoWebsocket {
+		sapi.Server.Logger.Warning("DoWebsocket method missed")
+		return
+	}
+
+	if nil != obj.InitWebsocket(ctx, wsapi) {
+		return
+	}
+
+	obj.(actionDoWebsocket).DoWebsocket(ctx, wsapi)
+}
+
+func parseRequestURI(uri string, httpGetParam url.Values) (*actionHandler, error) {
 
 	//get action name from requesturi
-	var actionName, uri string
+	var actionName string
 	var param map[string]string
 	var ok bool
+	var handler *actionHandler
 
-	uri = httpsapi.RequestURI()
 	uri = strings.TrimLeft(uri, "/\\")
-	
+
 	if uri == "" {
 		actionName = confDefaultAction
 	} else {
 		uri = "/" + uri
-		_, ok = httpsapi.Get["r"]
+		_, ok = httpGetParam["r"]
 		if ok {
-			actionName = httpsapi.Get.Get("r")
+			actionName = httpGetParam.Get("r")
 		} else if confRewriteEnabled {
 			actionName, param = urlToAction(uri)
 			if "" != actionName && nil != param {
 				for key, val := range param {
-					httpsapi.Get.Set(key, val)
+					httpGetParam.Set(key, val)
 				}
 			}
 		} else {
@@ -125,11 +168,11 @@ func InitHttpRequest(httpsapi *Sapi) error  {
 		}
 	}
 
-	httpsapi.handler, ok = actionMap[actionName]
+	handler, ok = actionMap[actionName]
 	if !ok {
-		return errors.New("cannot find action creater named " + actionName + " requesturi:" + uri)
+		return nil, errors.New("cannot find action creater named " + actionName + " requesturi:" + uri)
 	}
-	return nil
+	return handler, nil
 }
 
 func init() {

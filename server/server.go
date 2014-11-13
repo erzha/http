@@ -14,8 +14,10 @@ import (
 	"github.com/erzha/kernel"
 
 	"golang.org/x/net/context"
+	"golang.org/x/net/websocket"
 )
 
+var handlerObj *Handler
 type Handler struct {
 	disabled bool
 
@@ -31,6 +33,8 @@ type Handler struct {
 	staticDir string
 
 	confTimeout time.Duration
+
+	ws websocket.Server
 }
 
 func (p *Handler) shutdown() {
@@ -86,7 +90,6 @@ func (p *Handler) Serve(ctx context.Context, pServer *kernel.Server) {
 }
 
 func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-
 	if p.disabled {
 		http.Error(res, "the server is shutting down", 503)
 		return
@@ -102,16 +105,28 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	defer func(){ p.currentChildren-- }()
 	p.currentChildren++
 
-	//whether is a static resourse
-	if req.RequestURI == "/favicon.ico" || strings.HasPrefix(req.RequestURI, p.staticPrefix) {
-		http.ServeFile(res, req, p.staticDir + req.RequestURI)
-		return
+	isWebsocket := req.Header.Get("Upgrade") == "websocket"
+	if false == isWebsocket {
+		p.serveHttpRequest(res, req)
+	} else {
+		p.ws.ServeHTTP(res, req)
 	}
+}
+
+func (p *Handler) serveHttpRequest(res http.ResponseWriter, req *http.Request) {
+	var err error
 
 	ctx, cancel := context.WithTimeout(serverCtx, p.confTimeout)
 	defer cancel()
 
 	actionDone := make(chan bool)
+
+
+	//whether is a static resourse
+	if req.RequestURI == "/favicon.ico" || strings.HasPrefix(req.RequestURI, p.staticPrefix) {
+		http.ServeFile(res, req, p.staticDir + req.RequestURI)
+		return
+	}
 
 	sapiobj := NewSapi(res, req)
 	kernelSapi := kernel.NewSapi()
@@ -120,7 +135,7 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	kernelSapi.Ext = sapiobj
 	sapiobj.Kernel = kernelSapi
 
-	err := InitHttpRequest(sapiobj)
+	sapiobj.handler, err = parseRequestURI(sapiobj.RequestURI(), sapiobj.Get)
 	if err != nil {
 		kernelSapi.Server.Logger.Warning(err.Error())
 		return
@@ -135,14 +150,45 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case <-actionDone:
 	case <-ctx.Done():
 	case <-res.(http.CloseNotifier).CloseNotify(): //client disconnected
-	case <-sapiobj.chExitRequest:
+	}
+}
+
+func (p *Handler) serveWebsocket(conn *websocket.Conn) {
+	var err error
+
+	ctx, cancel := context.WithTimeout(serverCtx, p.confTimeout)
+	defer cancel()
+
+	sapiobj := NewWebsocketSapi(conn.Request())
+	kernelSapi := kernel.NewSapi()
+	kernelSapi.Ext = sapiobj
+	sapiobj.Kernel = kernelSapi
+	sapiobj.Conn = conn
+
+	sapiobj.handler, err = parseRequestURI(sapiobj.RequestURI(), sapiobj.Get)
+	if err != nil {
+		kernelSapi.Server.Logger.Warning(err.Error())
+		return
+	}
+
+	actionDone := make(chan bool)
+	go func() {
+		kernel.FireAction(ctx, kernelSapi, doWebsocket)
+		close(actionDone)
+	}()
+
+	select {
+	case <-actionDone:
+	case <-ctx.Done():
 	}
 }
 
 func NewHandler() *Handler {
-	ret := &Handler{}
-	ret.maxChildren = 1024
-	return ret
+	handlerObj := &Handler{}
+	handlerObj.maxChildren = 1024
+	handlerObj.ws = websocket.Server{}
+	handlerObj.ws.Handler = handlerObj.serveWebsocket
+	return handlerObj
 
 }
 
