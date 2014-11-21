@@ -5,6 +5,7 @@
 package server
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -29,7 +30,7 @@ type Handler struct {
 	maxChildren int64
 	currentChildren int64
 
-	staticPrefix string
+	staticPrefix []string
 	staticDir string
 
 	confTimeout time.Duration
@@ -70,8 +71,12 @@ func (p *Handler) Serve(ctx context.Context, pServer *kernel.Server) {
 		pServer.Logger.Fatalf("erzha_http_server_listen_error %s", err.Error())
 		return //exit
 	}
+	pServer.Logger.Sysf("erzha_http_server_listen_success net[%s] addr[%s]", listenNet, listenAddr)
 
-	p.staticPrefix = pServer.Conf.String("erzha.http.static_prefix", "/static/")
+	staticPrefix := pServer.Conf.String("erzha.http.static_prefix", "/static/")
+	staticPrefix = strings.TrimSpace(staticPrefix)
+	staticPrefix = strings.Trim(staticPrefix, "#")
+	p.staticPrefix = strings.Split(staticPrefix, "#")
 	p.staticDir = pServer.Conf.String("erzha.http.static_dir", "static/")
 
 	p.confTimeout, err = time.ParseDuration(pServer.Conf.String("erzha.http.timeout", "6s"))
@@ -123,9 +128,12 @@ func (p *Handler) serveHttpRequest(res http.ResponseWriter, req *http.Request) {
 
 
 	//whether is a static resourse
-	if req.RequestURI == "/favicon.ico" || strings.HasPrefix(req.RequestURI, p.staticPrefix) {
-		http.ServeFile(res, req, p.staticDir + req.RequestURI)
-		return
+	var prefix string
+	for _, prefix = range p.staticPrefix {
+		if strings.HasPrefix(req.RequestURI, prefix) {
+			http.ServeFile(res, req, p.staticDir + req.RequestURI)
+			return
+		}
 	}
 
 	sapiobj := NewSapi(res, req)
@@ -194,4 +202,9 @@ func NewHandler() *Handler {
 
 func Boot() {
 	kernel.Boot(NewHandler())
+}
+
+var flagFlykey *string
+func init() {
+	flagFlykey	 = flag.String("flykey", "", "set the basedir, the $(pwd) is default")
 }
