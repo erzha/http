@@ -66,7 +66,7 @@ func (h *defaultHandler) SetExpireTime(ttl int) {
 func (h *defaultHandler) expire() {
 	var now time.Time
 	var e *list.Element
-	var st sessionTime
+	var st *sessionTime
 
 	for h.running {
 		now = time.Now().Add(time.Duration(-h.ttl)*time.Second)
@@ -76,7 +76,7 @@ func (h *defaultHandler) expire() {
 				break
 			}
 
-			st=e.Value.(sessionTime)
+			st=e.Value.(*sessionTime)
 			if st.time.After(now) {
 				break
 			}
@@ -106,7 +106,7 @@ func (h *defaultHandler) Set(session, key string, value []byte) bool {
 
 	_, ok := h.data[session]
 	if !ok {
-		st := sessionTime{session, time.Now()}
+		st := &sessionTime{session, time.Now()}
 		tmp := sessionValue{}
 		tmp.value = make(map[string][]byte)
 		tmp.element = h.list.PushFront(st)
@@ -156,5 +156,7 @@ func (h *defaultHandler) Destory(session string) bool {
 func (h *defaultHandler) refreshElement(session string, exists bool) {
 	if exists {
 		h.list.MoveToFront(h.data[session].element)
+		tmp := h.data[session].element.Value.(*sessionTime)
+		tmp.time = time.Now()
 	}
 }
