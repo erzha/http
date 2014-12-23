@@ -8,6 +8,7 @@ import (
 	"strings"
 	"errors"
 	"reflect"
+	"runtime/debug"
 	"net/http"
 	"net/url"
 
@@ -80,6 +81,7 @@ func do(ctx context.Context, sapi *kernel.Sapi) {
 		r := recover()
 		if nil!=r {
 			sapi.Server.Logger.Warning("server_internal_error ", r)
+			sapi.Server.Logger.Warning(string(debug.Stack()))
 			http.Error(httpsapi.Res, "server internal error", http.StatusInternalServerError)
 		}
 	}()
