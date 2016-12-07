@@ -57,7 +57,6 @@ var serverCtx context.Context
 var serverCtxCancel context.CancelFunc
 
 func (p *Handler) Serve(ctx context.Context, pServer *kernel.Server) {
-
 	serverCtx, serverCtxCancel = context.WithCancel(ctx)
 	p.server = pServer
 
