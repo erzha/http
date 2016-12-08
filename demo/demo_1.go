@@ -91,8 +91,8 @@ func (client *DNSClient) LookupENDS0_A_Record(requestDomain string, clientip str
 
 	appSysLogger.Info("query_domain NS:", client.ns, " domain:", requestDomain, " A:", jData["A"], " CNAME:", jData["CNAME"])
 
-	//if len(jData["A"]) == 0 && len(jData["CNAME"]) > 0 {
-	if  len(jData["CNAME"]) > 0 {
+	if len(jData["A"]) == 0 && len(jData["CNAME"]) > 0 {
+	//if  len(jData["CNAME"]) > 0 {
 		for index := range jData["CNAME"] {
 			r, e := client.LookupENDS0_A_Record(jData["CNAME"][index], clientip)
 			if nil != e && len(r) > 0 {
