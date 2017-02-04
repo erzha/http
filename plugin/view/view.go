@@ -14,10 +14,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"golang.org/x/net/context"
-	
-	"github.com/erzha/kernel"
+	"context"
+
 	"github.com/erzha/http/server"
+	"github.com/erzha/kernel"
 )
 
 //view自定义模版函数
@@ -128,7 +128,7 @@ func viewFuncInclude(viewName string, data interface{}) (string, error) {
 
 	tpl, err = getTemplate(viewName)
 	if nil != err {
-		return "", errors.New(err.Error() + " "  + viewName)
+		return "", errors.New(err.Error() + " " + viewName)
 	}
 
 	err = tpl.Execute(stdoutWriter.(io.Writer), data)
@@ -138,12 +138,12 @@ func viewFuncInclude(viewName string, data interface{}) (string, error) {
 	return "", nil
 }
 
-func viewFuncUrl(actionName string, args ...interface{}) (string, error){
+func viewFuncUrl(actionName string, args ...interface{}) (string, error) {
 	var urlArgs map[string]string
 	urlArgs = make(map[string]string)
 
 	lenargs := len(args)
-	for i:=0; i<lenargs; i+=2 {
+	for i := 0; i < lenargs; i += 2 {
 		key := fmt.Sprintf("%v", args[i])
 		urlArgs[key] = fmt.Sprintf("%v", args[i+1])
 	}
@@ -161,7 +161,6 @@ func serverInit(ctx context.Context, pServer *kernel.Server) error {
 
 	confAutoRefresh = pServer.Conf.Bool("erzha.http.plugin.view.autoRefresh", true)
 
-
 	_, err = os.Stat(dir)
 	if nil != err {
 		pServer.Logger.Warning(err)
@@ -174,7 +173,7 @@ func serverInit(ctx context.Context, pServer *kernel.Server) error {
 			if !info.IsDir() {
 				e := initTemplate(path)
 				if nil != e {
-					pServer.Logger.Warning("view_init_error "+e.Error() + " " + path)
+					pServer.Logger.Warning("view_init_error " + e.Error() + " " + path)
 					return e
 				}
 			}
@@ -199,7 +198,7 @@ func newInfo() kernel.PluginInfo {
 
 	viewFuncMap = map[string]interface{}{
 		"ezInclude": viewFuncInclude,
-		"ezUrl": viewFuncUrl,
+		"ezUrl":     viewFuncUrl,
 	}
 
 	info := kernel.PluginInfo{}

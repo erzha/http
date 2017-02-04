@@ -5,13 +5,12 @@
 package session
 
 import (
+	"container/list"
 	"sync"
 	"time"
-	"container/list"
 )
 
 type Handler interface {
-
 	SetExpireTime(ttl int)
 
 	Start() bool
@@ -20,21 +19,21 @@ type Handler interface {
 	Set(sid, key string, value []byte) bool
 
 	/*
-	get data associate with sid. 
-	if sid is not existent, return nil, false
+		get data associate with sid.
+		if sid is not existent, return nil, false
 	*/
-	Get(sid, key string)  ([]byte, bool)
+	Get(sid, key string) ([]byte, bool)
 	Del(sid, key string) bool
 	Destory(sid string) bool
 }
 
 type sessionTime struct {
-	sid string
+	sid  string
 	time time.Time
 }
 
 type sessionValue struct {
-	value map[string][]byte
+	value   map[string][]byte
 	element *list.Element
 }
 
@@ -42,9 +41,9 @@ type defaultHandler struct {
 	data map[string]sessionValue
 
 	//for expire
-	list *list.List
+	list    *list.List
 	running bool
-	ttl int
+	ttl     int
 
 	//for data safe
 	lock *sync.RWMutex
@@ -69,14 +68,14 @@ func (h *defaultHandler) expire() {
 	var st *sessionTime
 
 	for h.running {
-		now = time.Now().Add(time.Duration(-h.ttl)*time.Second)
+		now = time.Now().Add(time.Duration(-h.ttl) * time.Second)
 		for {
 			e = h.list.Back()
 			if nil == e {
 				break
 			}
 
-			st=e.Value.(*sessionTime)
+			st = e.Value.(*sessionTime)
 			if st.time.After(now) {
 				break
 			}
@@ -85,7 +84,7 @@ func (h *defaultHandler) expire() {
 			delete(h.data, st.sid)
 			h.lock.Unlock()
 		}
-		time.Sleep(1*time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 

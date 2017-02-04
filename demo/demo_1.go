@@ -3,30 +3,29 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"net"
 	"time"
-	"errors"
-	"encoding/json"
 
+	"context"
+	"github.com/erzha/elog"
 	"github.com/erzha/http/server"
 	"github.com/erzha/kernel"
-	"github.com/erzha/elog"
-	"golang.org/x/net/context"
 
 	"github.com/miekg/dns"
 )
 
-
 //main.go
 func main() {
 	kernel.RegisterPlugin("appInit", RegisterPlugin_APP())
-	server.Router("index", "index", func()server.ActionInterface{return &IndexAction{} })
+	server.Router("index", "index", func() server.ActionInterface { return &IndexAction{} })
 	server.Boot()
 }
 
-
 //app/app.go
 var appSysLogger *elog.Logger
+
 func RegisterPlugin_APP() kernel.PluginInfo {
 	info := kernel.PluginInfo{}
 	info.ServerInit = Plugin_App_ServerInit
@@ -40,7 +39,7 @@ func Plugin_App_ServerInit(ctx context.Context, pServer *kernel.Server) error {
 
 //app/model/dnsutil.go
 type DNSClient struct {
-	ns string
+	ns             string
 	recursionCount int
 }
 
@@ -51,7 +50,6 @@ func newDnsClient(ns string) *DNSClient {
 }
 
 func (client *DNSClient) LookupENDS0_A_Record(requestDomain string, clientip string) ([]string, error) {
-	
 
 	//DNS协议的EDNS特性(draft-ietf-dnsop-edns-client-subnet-00)
 	edns := new(dns.EDNS0_SUBNET)
@@ -59,7 +57,7 @@ func (client *DNSClient) LookupENDS0_A_Record(requestDomain string, clientip str
 	edns.Family = 1
 	edns.SourceNetmask = 32
 	edns.Address = net.ParseIP(clientip).To4()
-	
+
 	dnsOption := new(dns.OPT)
 	dnsOption.Hdr.Name = "."
 	dnsOption.Hdr.Rrtype = dns.TypeOPT
@@ -73,9 +71,9 @@ func (client *DNSClient) LookupENDS0_A_Record(requestDomain string, clientip str
 	msg.Question = make([]dns.Question, 1)
 	msg.Question[0] = dns.Question{requestDomain, dns.TypeA, dns.ClassINET}
 	msg.Extra = append(msg.Extra, dnsOption)
-	
+
 	in, err := dns.Exchange(msg, nsServer)
-	if (nil != err) {
+	if nil != err {
 		return nil, err
 	}
 
@@ -84,15 +82,17 @@ func (client *DNSClient) LookupENDS0_A_Record(requestDomain string, clientip str
 	for index := range in.Answer {
 		record := in.Answer[index]
 		switch realHeader := record.(type) {
-			case *dns.A: jData["A"] = append(jData["A"], realHeader.A.String())
-			case *dns.CNAME: jData["CNAME"] = append(jData["Target"], realHeader.Target)
+		case *dns.A:
+			jData["A"] = append(jData["A"], realHeader.A.String())
+		case *dns.CNAME:
+			jData["CNAME"] = append(jData["Target"], realHeader.Target)
 		}
 	}
 
 	appSysLogger.Info("query_domain NS:", client.ns, " domain:", requestDomain, " A:", jData["A"], " CNAME:", jData["CNAME"])
 
 	if len(jData["A"]) == 0 && len(jData["CNAME"]) > 0 {
-	//if  len(jData["CNAME"]) > 0 {
+		//if  len(jData["CNAME"]) > 0 {
 		for index := range jData["CNAME"] {
 			r, e := client.LookupENDS0_A_Record(jData["CNAME"][index], clientip)
 			if nil != e && len(r) > 0 {
@@ -104,13 +104,12 @@ func (client *DNSClient) LookupENDS0_A_Record(requestDomain string, clientip str
 	return jData["A"], nil
 }
 
-
 //app/action/IndexAction.go
 type IndexAction struct {
 	server.Action
-	sapi *server.Sapi
+	sapi  *server.Sapi
 	start time.Time
-	err error
+	err   error
 }
 
 func (action *IndexAction) Init(ctx context.Context, isapi *server.Sapi) error {
@@ -121,7 +120,7 @@ func (action *IndexAction) Init(ctx context.Context, isapi *server.Sapi) error {
 
 func (action *IndexAction) Response(data interface{}) {
 	r := map[string]interface{}{}
-	r["time_cost_ms"] = time.Now().Sub(action.start).Nanoseconds()/1000/1000
+	r["time_cost_ms"] = time.Now().Sub(action.start).Nanoseconds() / 1000 / 1000
 	if nil != action.err {
 		r["error"] = action.err
 	}
@@ -131,15 +130,14 @@ func (action *IndexAction) Response(data interface{}) {
 	action.sapi.Res.Write(j)
 }
 
-
-func (action *IndexAction) Execute(ctx context.Context, sapi *server.Sapi) { 
+func (action *IndexAction) Execute(ctx context.Context, sapi *server.Sapi) {
 	//Parse Request
 	returnData := map[string]string{}
 
 	requestDomain := sapi.Form.Get("domain")
 	nsServer := sapi.Form.Get("ns")
 	clientip := sapi.Form.Get("clientip")
-	
+
 	if "" == requestDomain {
 		action.err = errors.New("empty domain")
 		action.Response(returnData)

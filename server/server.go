@@ -14,11 +14,12 @@ import (
 
 	"github.com/erzha/kernel"
 
-	"golang.org/x/net/context"
+	"context"
 	"golang.org/x/net/websocket"
 )
 
 var handlerObj *Handler
+
 type Handler struct {
 	disabled bool
 
@@ -27,11 +28,11 @@ type Handler struct {
 	//listener
 	Ln net.Listener
 
-	maxChildren int64
+	maxChildren     int64
 	currentChildren int64
 
 	staticPrefix []string
-	staticDir string
+	staticDir    string
 
 	confTimeout time.Duration
 
@@ -42,13 +43,13 @@ func (p *Handler) shutdown() {
 	p.disabled = true
 	for p.currentChildren > 0 {
 		/*
-		p.pServer.Logger.Infof(
-			"wait for currentChildren stop, remains %d. use [ kill -9 %d ] if you want to kill it at once.",
-			p.currentChildren,
-			os.Getpid(),
-		)
+			p.pServer.Logger.Infof(
+				"wait for currentChildren stop, remains %d. use [ kill -9 %d ] if you want to kill it at once.",
+				p.currentChildren,
+				os.Getpid(),
+			)
 		*/
-		time.Sleep(1*time.Second)
+		time.Sleep(1 * time.Second)
 	}
 	p.Ln.Close()
 }
@@ -61,7 +62,7 @@ func (p *Handler) Serve(ctx context.Context, pServer *kernel.Server) {
 	p.server = pServer
 
 	var err error
-	
+
 	listenNet := pServer.Conf.String("erzha.http.net", "tcp")
 	listenAddr := pServer.Conf.String("erzha.http.laddr", ":8989")
 	p.Ln, err = net.Listen(listenNet, listenAddr)
@@ -106,7 +107,7 @@ func (p *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//manage currentChildren
-	defer func(){ p.currentChildren-- }()
+	defer func() { p.currentChildren-- }()
 	p.currentChildren++
 
 	isWebsocket := req.Header.Get("Upgrade") == "websocket"
@@ -125,12 +126,11 @@ func (p *Handler) serveHttpRequest(res http.ResponseWriter, req *http.Request) {
 
 	actionDone := make(chan bool)
 
-
 	//whether is a static resourse
 	var prefix string
 	for _, prefix = range p.staticPrefix {
 		if strings.HasPrefix(req.RequestURI, prefix) {
-			http.ServeFile(res, req, p.staticDir + req.RequestURI)
+			http.ServeFile(res, req, p.staticDir+req.RequestURI)
 			return
 		}
 	}
@@ -204,6 +204,7 @@ func Boot() {
 }
 
 var flagFlykey *string
+
 func init() {
-	flagFlykey	 = flag.String("flykey", "", "set the basedir, the $(pwd) is default")
+	flagFlykey = flag.String("flykey", "", "set the basedir, the $(pwd) is default")
 }

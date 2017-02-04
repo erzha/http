@@ -5,31 +5,31 @@
 package server
 
 import (
-	"strings"
 	"errors"
-	"reflect"
-	"runtime/debug"
 	"net/http"
 	"net/url"
+	"reflect"
+	"runtime/debug"
+	"strings"
 
 	"github.com/erzha/kernel"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 var (
-	confDefaultAction string = "index"
+	confDefaultAction  string = "index"
 	confRewriteEnabled bool
 )
 
 type actionHandler struct {
-	flag bool
-	hasDoGet bool
+	flag      bool
+	hasDoGet  bool
 	hasDoPost bool
 
 	//websocket only
 	hasDoWebsocket bool
-	creater func()ActionInterface
+	creater        func() ActionInterface
 }
 
 type actionDoGet interface {
@@ -67,7 +67,7 @@ func (action *Action) InitWebsocket(ctx context.Context, sapi *WebsocketSapi) er
 
 var actionMap map[string]*actionHandler
 
-func Router(url string, name string, creater func()ActionInterface) {
+func Router(url string, name string, creater func() ActionInterface) {
 	routerAddRule(url, name)
 	handler := &actionHandler{}
 	handler.creater = creater
@@ -79,7 +79,7 @@ func do(ctx context.Context, sapi *kernel.Sapi) {
 
 	defer func() {
 		r := recover()
-		if nil!=r {
+		if nil != r {
 			sapi.Server.Logger.Warning("server_internal_error ", r)
 			sapi.Server.Logger.Warning(string(debug.Stack()))
 			http.Error(httpsapi.Res, "server internal error", http.StatusInternalServerError)
@@ -100,23 +100,22 @@ func do(ctx context.Context, sapi *kernel.Sapi) {
 		return
 	}
 
-	switch  {
+	switch {
 	case "GET" == httpsapi.Req.Method && handler.hasDoGet:
 		obj.(actionDoGet).DoGet(ctx, httpsapi)
 	case "POST" == httpsapi.Req.Method && handler.hasDoPost:
 		obj.(actionDoPost).DoPost(ctx, httpsapi)
-	default :
+	default:
 		obj.Execute(ctx, httpsapi)
 	}
 }
-
 
 func doWebsocket(ctx context.Context, sapi *kernel.Sapi) {
 	wsapi := sapi.Ext.(*WebsocketSapi)
 
 	defer func() {
 		r := recover()
-		if nil!=r {
+		if nil != r {
 			sapi.Server.Logger.Warning("server_internal_error ", r)
 		}
 	}()
@@ -181,4 +180,3 @@ func init() {
 	actionMap = make(map[string]*actionHandler)
 	confRewriteEnabled = true
 }
-

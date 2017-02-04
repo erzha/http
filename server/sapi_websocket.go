@@ -13,16 +13,14 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-
 type WebsocketSapi struct {
-
 	Kernel *kernel.Sapi
 
-	Conn *websocket.Conn
-	Req *http.Request
+	Conn   *websocket.Conn
+	Req    *http.Request
 	Status int
 
-	Get	url.Values
+	Get url.Values
 
 	handler *actionHandler
 }
@@ -34,12 +32,12 @@ func (p *WebsocketSapi) RequestURI() string {
 	return p.Req.URL.Path
 }
 
-func (p *WebsocketSapi) Cookie(key string)  string {
+func (p *WebsocketSapi) Cookie(key string) string {
 	c, e := p.Req.Cookie(key)
-	if nil!=e {
+	if nil != e {
 		return ""
 	}
-	return c.Value;
+	return c.Value
 }
 
 func NewWebsocketSapi(req *http.Request) *WebsocketSapi {

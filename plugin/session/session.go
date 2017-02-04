@@ -1,17 +1,17 @@
 package session
 
 import (
+	"bytes"
 	"encoding/gob"
 	"math/rand"
 	"net/http"
 	"strconv"
-	"bytes"
 	"time"
 
-	"github.com/erzha/kernel"
 	"github.com/erzha/http/server"
+	"github.com/erzha/kernel"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 var (
@@ -34,10 +34,10 @@ func uuid() string {
 var sessionHandler Handler
 
 type Session struct {
-	httpsapi *server.Sapi
+	httpsapi   *server.Sapi
 	id         string
 	hasStarted bool
-	h Handler
+	h          Handler
 }
 
 func (s *Session) Id() string {
@@ -58,9 +58,9 @@ func (s *Session) Start() {
 	if id == "" {
 		id = uuid()
 		newcookie := http.Cookie{
-			Name: ConfSessionIdName,
-			Value: id,
-			Expires: time.Now().Add(time.Duration(ConfSessionTimeout)*time.Second),
+			Name:     ConfSessionIdName,
+			Value:    id,
+			Expires:  time.Now().Add(time.Duration(ConfSessionTimeout) * time.Second),
 			HttpOnly: true,
 		}
 		s.httpsapi.SetCookie(&newcookie)
